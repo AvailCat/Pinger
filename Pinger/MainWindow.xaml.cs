@@ -68,14 +68,17 @@ namespace Pinger
             // Prevent bar chart out of screen
             if (rttResults.Count >= barCount)
             {
-                rttResults.RemoveAt(rttResults.Count - 1);
+                while (rttResults.Count > barCount - 1)
+                {
+                    rttResults.RemoveAt(rttResults.Count - 1);
+                }
             }
 
             if (pingProtocol == PingProtocol.ICMP)
             {
                 var pinger = new Ping();
                 var reply = pinger.Send(targetHost);
-                rttResults.Insert(0, reply.RoundtripTime > 0 ? reply.RoundtripTime : 1);
+                rttResults.Insert(0, reply.RoundtripTime);
             } else
             {
                 var sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
@@ -91,7 +94,7 @@ namespace Pinger
                 sock.Close();
 
                 var time = (long)stopwatch.Elapsed.TotalMilliseconds;
-                rttResults.Insert(0, time > 0 ? time : 1);
+                rttResults.Insert(0, time);
             }
             
             UpdateCanvas();
@@ -122,7 +125,7 @@ namespace Pinger
                 for (var i = 0; i < rttResults.Count; i++)
                 {
                     var currentRtt = rttResults[i];
-                    var barHeight = ((float)currentRtt / rttResults.Max()) * cHeight;
+                    var barHeight = ((float)currentRtt / Math.Max(rttResults.Max(), 1)) * cHeight;
                     var barRight = i * barWidth;
 
                     var bar = new Rectangle
