@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
-using System.Text;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Pinger.Model;
 
 namespace Pinger
 {
@@ -23,14 +21,22 @@ namespace Pinger
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Timer timer;
-        private string host;
-        private List<long> rttResults = new List<long>();
+        // MainWindow
+        private MainWindowViewModel ctx;
         private int barCount = 30;
+
+        private string targetHost;
+        private int targetPort;
+        private PingProtocol pingProtocol;
+
+        private Timer timer;
+        private List<long> rttResults = new List<long>();
 
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new MainWindowViewModel();
+            ctx = (MainWindowViewModel)DataContext;
             UpdateCanvas();
         }
 
@@ -39,27 +45,59 @@ namespace Pinger
             if (timer != null)
             {
                 timer.Dispose();
+                timer = null;
+                ctx.ActionButtonText = "Start";
+                return;
+            } else
+            {
+                rttResults.Clear();
+                ctx.ActionButtonText = "Stop";
             }
 
-            host = HostInput.Text;
-            timer = new Timer(Convert.ToInt32(IntervalInput.Text));
+            targetHost = HostInput.Text;
+            targetPort = Convert.ToInt32(PortInput.Text);
+            pingProtocol = ctx.SelectedPingProtocol;
+
+            timer = new Timer(ctx.PingInterval);
             timer.Elapsed += IntervalPing;
             timer.Enabled = true;
         }
 
         private void IntervalPing(Object source, ElapsedEventArgs e)
         {
-            var pinger = new Ping();
-            var reply = pinger.Send(host);
+            // Prevent bar chart out of screen
             if (rttResults.Count >= barCount)
             {
                 rttResults.RemoveAt(rttResults.Count - 1);
             }
-            rttResults.Insert(0, reply.RoundtripTime > 0 ? reply.RoundtripTime : 1);
+
+            if (pingProtocol == PingProtocol.ICMP)
+            {
+                var pinger = new Ping();
+                var reply = pinger.Send(targetHost);
+                rttResults.Insert(0, reply.RoundtripTime > 0 ? reply.RoundtripTime : 1);
+            } else
+            {
+                var sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+                {
+                    Blocking = true
+                };
+
+                var stopwatch = new Stopwatch();
+
+                stopwatch.Start();
+                sock.Connect(targetHost, targetPort);
+                stopwatch.Stop();
+                sock.Close();
+
+                var time = (long)stopwatch.Elapsed.TotalMilliseconds;
+                rttResults.Insert(0, time > 0 ? time : 1);
+            }
+            
             UpdateCanvas();
         }
 
-        private void UpdateCanvas ()
+        private void UpdateCanvas()
         {
             Dispatcher.Invoke(() =>
             {
@@ -70,7 +108,7 @@ namespace Pinger
                 c.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFF9F9F9"));
                 var text = new TextBlock
                 {
-                    Text = $"Latency graph ({barCount})",
+                    Text = $"Latency graph ({barCount}, {barCount * (ctx.PingInterval / 1000f)}s)",
                     Foreground = Brushes.Gray
                 };
                 Canvas.SetTop(text, 0);
@@ -78,7 +116,7 @@ namespace Pinger
                 c.Children.Add(text);
 
                 // Draw bar
-                var cHeight = c.ActualHeight - 50;
+                var cHeight = c.ActualHeight - 30;
                 var cWidth = c.ActualWidth;
                 var barWidth = cWidth / barCount;
                 for (var i = 0; i < rttResults.Count; i++)
@@ -110,7 +148,7 @@ namespace Pinger
                     c.Children.Add(rttText);
                     c.Children.Add(bar);
                 }
-                
+
             });
         }
 
@@ -122,7 +160,7 @@ namespace Pinger
             }
         }
 
-        private void IntervalInput_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        private void PreviewTextInput_NumberOnly(object sender, TextCompositionEventArgs e)
         {
             Regex regex = new Regex("[^0-9]");
             e.Handled = regex.IsMatch(e.Text);

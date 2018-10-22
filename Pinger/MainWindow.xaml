@@ -1,4 +1,4 @@
-﻿<Window x:Class="Pinger.MainWindow"
+﻿<Window x:Name="window" x:Class="Pinger.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,13 +8,30 @@
         Title="Pinger" Height="250" Width="700" Closing="Window_Closing" WindowStartupLocation="CenterScreen">
     <Grid>
         <GroupBox Header="Settings" HorizontalAlignment="Stretch" Height="64" Margin="10,10,9.6,0" VerticalAlignment="Top" Width="Auto">
-            <Label Content="Host" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+            <Grid>
+                <Grid Margin="10,10,482.8,5.6">
+                    <Label Content="Host" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    <TextBox x:Name="HostInput" HorizontalAlignment="Left" Margin="39,3,0,0" TextWrapping="Wrap" Text="shutdown.services" VerticalAlignment="Top" Width="120" MaxLines="1" PreviewTextInput="HostInput_PreviewTextInput"/>
+                </Grid>
+                <Grid Margin="178,10,357.8,5.6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="19*"/>
+                        <ColumnDefinition Width="6*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Interval" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    <TextBox x:Name="IntervalInput" HorizontalAlignment="Left" Margin="58,3,0,0" TextWrapping="Wrap" Text="{Binding PingIntervalText}" VerticalAlignment="Top" Width="55" PreviewTextInput="PreviewTextInput_NumberOnly" MaxLines="1" Grid.ColumnSpan="2"/>
+                </Grid>
+                <Grid Margin="304,10,202.8,5.6">
+                    <Label Content="Protocol" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="ProtolSelect" HorizontalAlignment="Left" Margin="59,2,0,0" VerticalAlignment="Top" Width="80" ItemsSource="{Binding PingProtocolValues}" SelectedValue="{Binding SelectedPingProtocol}"/>
+                </Grid>
+                <Grid Margin="458,10,89.8,5.6">
+                    <Label Content="Port" HorizontalAlignment="Left" VerticalAlignment="Top" Grid.RowSpan="2"/>
+                    <TextBox x:Name="PortInput" HorizontalAlignment="Left" Margin="33,4,0,0" TextWrapping="Wrap" Text="443" VerticalAlignment="Top" Width="62" PreviewTextInput="PreviewTextInput_NumberOnly" IsEnabled="{Binding PortInputEnabled}" Grid.RowSpan="2"/>
+                </Grid>
+                <Button Content="{Binding ActionButtonText}" HorizontalAlignment="Left" Margin="576,12,0,0" VerticalAlignment="Top" Width="75" Click="StartButton_Click" Height="20"/>
+            </Grid>
         </GroupBox>
-        <TextBox x:Name="HostInput" HorizontalAlignment="Left" Margin="62,39,0,0" TextWrapping="Wrap" Text="shutdown.services" VerticalAlignment="Top" Width="120" MaxLines="1" PreviewTextInput="HostInput_PreviewTextInput"/>
-        <Label Content="Interval" HorizontalAlignment="Left" Margin="201,35,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="IntervalInput" HorizontalAlignment="Left" Margin="259,39,0,0" TextWrapping="Wrap" Text="500" VerticalAlignment="Top" Width="55" PreviewTextInput="IntervalInput_PreviewTextInput" MaxLines="1"/>
-        <Button Content="Start" HorizontalAlignment="Left" Margin="334,38,0,0" VerticalAlignment="Top" Width="75" Click="StartButton_Click"/>
         <Canvas x:Name="ResultCanvas" Height="Auto" Width="Auto" Margin="10,79,9.6,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-
     </Grid>
 </Window>
