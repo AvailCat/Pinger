@@ -28,9 +28,8 @@ namespace Pinger
         private MainWindowViewModel ctx;
         private PingerController controller;
         private int barCount = 30;
-
-        //private List<long> rttResults = new List<long>();
-        private ObservableCollection<long> rttResults;
+        
+        private ObservableCollection<double> rttResults;
 
         public MainWindow()
         {
@@ -38,7 +37,7 @@ namespace Pinger
             DataContext = new MainWindowViewModel();
             ctx = (MainWindowViewModel)DataContext;
             controller = new PingerController(ctx.PingInterval, 30);
-            rttResults = new ObservableCollection<long>();
+            rttResults = new ObservableCollection<double>();
             rttResults.CollectionChanged += RttPoolChangeHandler;
 
             UpdateCanvas();
@@ -96,13 +95,14 @@ namespace Pinger
                 c.Children.Add(text);
 
                 // Draw bar
-                var cHeight = c.ActualHeight - 30;
+                var cHeight = c.ActualHeight - 35;
                 var cWidth = c.ActualWidth;
                 var barWidth = cWidth / barCount;
                 for (var i = 0; i < rttResults.Count; i++)
                 {
                     var currentRtt = rttResults[i];
-                    var barHeight = ((float)currentRtt / Math.Max(rttResults.Max(), 1)) * cHeight;
+                    var currentRttInt = (uint)Math.Round(currentRtt);
+                    var barHeight = (currentRtt / (double)Math.Max(rttResults.Max(), 1)) * cHeight;
                     var barRight = i * barWidth;
 
                     var bar = new Rectangle
@@ -114,18 +114,18 @@ namespace Pinger
                     Canvas.SetBottom(bar, 0);
                     Canvas.SetRight(bar, barRight);
 
-                    var rttTextLength = currentRtt.ToString().Length;
+                    var rttTextLength = currentRttInt.ToString().Length;
                     // Latency text on per bar
                     var rttText = new TextBlock
                     {
-                        Text = currentRtt.ToString(),
+                        Text = (currentRtt > 0 && currentRtt < 1) ? "<1" : currentRttInt.ToString(),
                         FontWeight = FontWeights.Bold,
                         // Maxium font size is the half of bar width
                         FontSize = barWidth / (rttTextLength > 2 ? rttTextLength : 2),
                         Width = barWidth - 5,
                         TextAlignment = TextAlignment.Center
                     };
-                    Canvas.SetBottom(rttText, barHeight + 5);
+                    Canvas.SetBottom(rttText, barHeight + 2);
                     Canvas.SetRight(rttText, barRight);
                     c.Children.Add(rttText);
                     c.Children.Add(bar);

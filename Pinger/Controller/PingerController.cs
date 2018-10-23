@@ -21,7 +21,7 @@ namespace Pinger.Controller
         private string _targetHost;
         private ushort? _targetPort;
         private uint? _timeout;
-        private ObservableCollection<long> _rttPool;
+        private ObservableCollection<double> _rttPool;
 
         public PingerController (uint interval, uint poolLength)
         {
@@ -45,7 +45,7 @@ namespace Pinger.Controller
             _timeout = timeout;
             Interval = interval;
         }
-        public void Start (ref ObservableCollection<long> rttPool)
+        public void Start (ref ObservableCollection<double> rttPool)
         {
             _rttPool = rttPool;
             CheckOldThread();
@@ -81,7 +81,7 @@ namespace Pinger.Controller
                 pingThread = null;
             }
         }
-        private void PoolMaintainer (ref ObservableCollection<long> rttPool)
+        private void PoolMaintainer (ref ObservableCollection<double> rttPool)
         {
             while (rttPool.Count >= PoolLength)
             {
@@ -93,7 +93,9 @@ namespace Pinger.Controller
             while (true)
             {
                 PoolMaintainer(ref _rttPool);
-                _rttPool.Insert(0, Utils.Ping.GetIcmpRtt(_targetHost));
+                double rtt = 0;
+                try { rtt = Utils.Ping.GetIcmpRtt(_targetHost); } catch { }
+                _rttPool.Insert(0, rtt);
                 Thread.Sleep((int)Interval);
             }
         }

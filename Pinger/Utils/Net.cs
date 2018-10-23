@@ -10,14 +10,17 @@ namespace Pinger.Utils
 {
     class Ping
     {
-        public static long GetIcmpRtt (string targetHost)
+        public static double GetIcmpRtt (string targetHost)
         {
             var pinger = new System.Net.NetworkInformation.Ping();
+            var watch = new Stopwatch();
+            watch.Start();
             var reply = pinger.Send(targetHost);
-            return reply.RoundtripTime;
+            watch.Stop();
+            return reply.Status == System.Net.NetworkInformation.IPStatus.Success ? watch.Elapsed.TotalMilliseconds : 0;
         }
 
-        public static long GetTcpRtt(string targetHost, ushort targetPort, uint timeoutMilliseconds)
+        public static double GetTcpRtt(string targetHost, ushort targetPort, uint timeoutMilliseconds)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
             {
@@ -32,7 +35,7 @@ namespace Pinger.Utils
             watch.Stop();
             socket.Close();
 
-            return connected ? (long)watch.Elapsed.TotalMilliseconds : 0;
+            return connected ? watch.Elapsed.TotalMilliseconds : 0;
         }
     }
 }
