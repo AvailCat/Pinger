@@ -14,7 +14,6 @@ namespace Pinger.Utils
         {
             var pinger = new System.Net.NetworkInformation.Ping();
             var reply = pinger.Send(targetHost);
-
             return reply.RoundtripTime;
         }
 
@@ -28,11 +27,12 @@ namespace Pinger.Utils
             var watch = new Stopwatch();
 
             watch.Start();
-            socket.Connect(targetHost, targetPort);
+            var result = socket.BeginConnect(targetHost, targetPort, null, null);
+            var connected = result.AsyncWaitHandle.WaitOne((int)timeoutMilliseconds, true);
             watch.Stop();
             socket.Close();
 
-            return (long)watch.Elapsed.TotalMilliseconds;
+            return connected ? (long)watch.Elapsed.TotalMilliseconds : 0;
         }
     }
 }

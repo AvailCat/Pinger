@@ -13,6 +13,9 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Pinger.Model;
+using Pinger.Controller;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace Pinger
 {
@@ -23,29 +26,29 @@ namespace Pinger
     {
         // MainWindow
         private MainWindowViewModel ctx;
+        private PingerController controller;
         private int barCount = 30;
 
-        private string targetHost;
-        private ushort targetPort;
-        private PingProtocol pingProtocol;
-
-        private Timer timer;
-        private List<long> rttResults = new List<long>();
+        //private List<long> rttResults = new List<long>();
+        private ObservableCollection<long> rttResults;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
             ctx = (MainWindowViewModel)DataContext;
+            controller = new PingerController(ctx.PingInterval, 30);
+            rttResults = new ObservableCollection<long>();
+            rttResults.CollectionChanged += RttPoolChangeHandler;
+
             UpdateCanvas();
         }
 
         private void StartButton_Click(object sender, RoutedEventArgs e)
         {
-            if (timer != null)
+            if (controller.Status != PingerStatus.Stopped)
             {
-                timer.Dispose();
-                timer = null;
+                controller.Stop();
                 ctx.ActionButtonText = "Start";
                 return;
             } else
@@ -54,34 +57,23 @@ namespace Pinger
                 ctx.ActionButtonText = "Stop";
             }
 
-            targetHost = HostInput.Text;
-            targetPort = Convert.ToUInt16(PortInput.Text);
-            pingProtocol = ctx.SelectedPingProtocol;
-
-            timer = new Timer(ctx.PingInterval);
-            timer.Elapsed += IntervalPing;
-            timer.Enabled = true;
+            switch (ctx.SelectedPingProtocol)
+            {
+                case PingProtocol.ICMP:
+                    controller.Setup(HostInput.Text, ctx.PingInterval);
+                    controller.Start(ref rttResults);
+                    break;
+                case PingProtocol.TCP:
+                    controller.Setup(HostInput.Text, Convert.ToUInt16(PortInput.Text), 3000, ctx.PingInterval);
+                    controller.Start(ref rttResults);
+                    break;
+                default:
+                    throw new Exception("Unknown protocol");
+            }
         }
 
-        private void IntervalPing(Object source, ElapsedEventArgs e)
+        private void RttPoolChangeHandler (object sender, NotifyCollectionChangedEventArgs args)
         {
-            // Prevent bar chart out of screen
-            if (rttResults.Count >= barCount)
-            {
-                while (rttResults.Count > barCount - 1)
-                {
-                    rttResults.RemoveAt(rttResults.Count - 1);
-                }
-            }
-
-            if (pingProtocol == PingProtocol.ICMP)
-            {
-                rttResults.Insert(0, Utils.Ping.GetIcmpRtt(targetHost));
-            } else
-            {
-                rttResults.Insert(0, Utils.Ping.GetTcpRtt(targetHost, targetPort, 1000));
-            }
-            
             UpdateCanvas();
         }
 
@@ -122,12 +114,14 @@ namespace Pinger
                     Canvas.SetBottom(bar, 0);
                     Canvas.SetRight(bar, barRight);
 
+                    var rttTextLength = currentRtt.ToString().Length;
                     // Latency text on per bar
                     var rttText = new TextBlock
                     {
                         Text = currentRtt.ToString(),
                         FontWeight = FontWeights.Bold,
-                        FontSize = barWidth / currentRtt.ToString().Length,
+                        // Maxium font size is the half of bar width
+                        FontSize = barWidth / (rttTextLength > 2 ? rttTextLength : 2),
                         Width = barWidth - 5,
                         TextAlignment = TextAlignment.Center
                     };
@@ -140,11 +134,11 @@ namespace Pinger
             });
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs e)
         {
-            if (timer != null)
+            if (controller.Status != PingerStatus.Stopped)
             {
-                timer.Dispose();
+                controller.Stop();
             }
         }
 

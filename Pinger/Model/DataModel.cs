@@ -11,4 +11,10 @@ namespace Pinger.Model
         ICMP,
         TCP
     }
+
+    public enum PingerStatus
+    {
+        Started,
+        Stopped
+    }
 }

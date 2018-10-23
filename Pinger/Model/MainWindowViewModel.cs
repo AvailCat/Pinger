@@ -24,7 +24,7 @@ namespace Pinger.Model
         }
 
         // Public access
-        public int PingInterval { get; private set; } = 1000;
+        public uint PingInterval { get; private set; } = 1000;
         public string PingIntervalText
         {
             get => $"{PingInterval}ms";
@@ -32,7 +32,7 @@ namespace Pinger.Model
             {
                 var text = value;
                 var regex = new Regex(@"\d+");
-                PingInterval = Convert.ToInt32(regex.Match(text).ToString());
+                PingInterval = Convert.ToUInt32(regex.Match(text).ToString());
             }
         }
         public PingProtocol SelectedPingProtocol
