@@ -26,7 +26,7 @@ namespace Pinger
         private int barCount = 30;
 
         private string targetHost;
-        private int targetPort;
+        private ushort targetPort;
         private PingProtocol pingProtocol;
 
         private Timer timer;
@@ -55,7 +55,7 @@ namespace Pinger
             }
 
             targetHost = HostInput.Text;
-            targetPort = Convert.ToInt32(PortInput.Text);
+            targetPort = Convert.ToUInt16(PortInput.Text);
             pingProtocol = ctx.SelectedPingProtocol;
 
             timer = new Timer(ctx.PingInterval);
@@ -76,25 +76,10 @@ namespace Pinger
 
             if (pingProtocol == PingProtocol.ICMP)
             {
-                var pinger = new Ping();
-                var reply = pinger.Send(targetHost);
-                rttResults.Insert(0, reply.RoundtripTime);
+                rttResults.Insert(0, Utils.Ping.GetIcmpRtt(targetHost));
             } else
             {
-                var sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-                {
-                    Blocking = true
-                };
-
-                var stopwatch = new Stopwatch();
-
-                stopwatch.Start();
-                sock.Connect(targetHost, targetPort);
-                stopwatch.Stop();
-                sock.Close();
-
-                var time = (long)stopwatch.Elapsed.TotalMilliseconds;
-                rttResults.Insert(0, time);
+                rttResults.Insert(0, Utils.Ping.GetTcpRtt(targetHost, targetPort, 1000));
             }
             
             UpdateCanvas();
